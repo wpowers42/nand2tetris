@@ -3,6 +3,33 @@
 // by Nisan and Schocken, MIT Press.
 // File name: projects/01/DMux4Way.hdl
 
+/*
+DMux4Way Truth Table
+| in  |  se  |  a  |  b  |  c  |  d  |
+|  0  |  00  |  0  |  0  |  0  |  0  |
+|  0  |  01  |  0  |  0  |  0  |  0  |
+|  0  |  10  |  0  |  0  |  0  |  0  |
+|  0  |  11  |  0  |  0  |  0  |  0  |
+|  1  |  00  |  1  |  0  |  0  |  0  |
+|  1  |  01  |  0  |  1  |  0  |  0  |
+|  1  |  10  |  0  |  0  |  1  |  0  |
+|  1  |  11  |  0  |  0  |  0  |  1  |
+*/
+
+/*
+Example Path:
+| in  |  se  |  a  |  b  |  c  |  d  |
+|  1  |  00  |  1  |  0  |  0  |  0  |
+
+DMux(in=in, sel=sel[1], a=ao, b=bo);
+    ao=1, bo=0
+DMux(in=ao, sel=sel[0], a=a, b=b);
+    a=1, b=0
+DMux(in=bo, sel=sel[0], a=c, b=d);
+    c=0, d=0
+
+*/
+
 /**
  * 4-way demultiplexor:
  * {a, b, c, d} = {in, 0, 0, 0} if sel == 00
@@ -16,15 +43,7 @@ CHIP DMux4Way {
     OUT a, b, c, d;
 
     PARTS:
-    Not(in=sel[0], out=notsel0);
-    Not(in=sel[1], out=notsel1);
-    And(a=notsel0, b=notsel1, out=isa);
-    And(a=isa, b=in, out=a);
-    And(a=sel[0], b=notsel1, out=isb);
-    And(a=isb, b=in, out=b);
-    And(a=notsel0, b=sel[1], out=isc);
-    And(a=isc, b=in, out=c);
-    And(a=sel[0], b=sel[1], out=isd);
-    And(a=isd, b=in, out=d);
-    
+    DMux(in=in, sel=sel[1], a=ao, b=bo);
+    DMux(in=ao, sel=sel[0], a=a, b=b);
+    DMux(in=bo, sel=sel[0], a=c, b=d);
 }
