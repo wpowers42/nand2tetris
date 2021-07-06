@@ -4,7 +4,7 @@
 // File name: projects/01/DMux.hdl
 
 /*
-Dmux Truth Table
+DMux Truth Table
 i s | a b
 0 0 | 0 0
 1 0 | 1 0
