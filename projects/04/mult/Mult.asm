@@ -9,4 +9,39 @@
 // This program only needs to handle arguments that satisfy
 // R0 >= 0, R1 >= 0, and R0*R1 < 32768.
 
-// Put your code here.
+// simplest possible implementation, but inefficient
+// the nand2tetris forums say this is the correct approach
+// for this project, and we will learn how to do more
+// advanced and efficient calculations in a later chapter
+
+// i = 0
+@i
+M=0
+// initialize R2 as 0
+@R2
+M=0
+
+(LOOP)
+    // if (i >= R1) goto END
+    @i
+    D=M
+    @R1
+    D=D-M
+    @END
+    D;JGE
+    // R2 = R2 + R0
+    @R2
+    D=M
+    @R0
+    D=D+M
+    @R2
+    M=D
+    // i = i + i
+    @i
+    M=M+1
+    // goto LOOP
+    @LOOP
+    0;JMP
+(END)
+    @END
+    0;JMP
