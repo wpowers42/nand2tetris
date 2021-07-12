@@ -39,5 +39,96 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+
+    // A-instructions start with 0
+    // C-instructions start with 1
+    // c    codes: 11,10,9,8,7,6
+    // dest codes: 5,4,3
+    // jump codes: 2,1,0
+
+    /***********
+    * A register + addressM
+    ***********/
+    // use instruction as address if instruction starts with 0
+    Mux16(a=instruction, b=aluoutput, sel=instruction[15], out=mux16oa);
+    // old: load instruction into A register if dest code is 1XX
+    // if A-instruction, load instruction into A register
+    Not(in=instruction[15], out=isa);
+    Or(a=isa, b=instruction[5], out=loada);
+    
+    ARegister(in=mux16oa, load=loada, out=aregistero, out[0..14]=aregistero15, out[0..14]=addressM);
+
+    /***********
+    * D register
+    ***********/
+    // load instruction into D register if dest code is X1X
+    DRegister(in=aluoutput, load=instruction[4], out=dregistero);
+    
+    /***********
+    * ALU
+    ***********/
+    // load ALU input from M value if a bit is 1
+    Mux16(a=aregistero, b=inM, sel=instruction[12], out=mux16ob);
+    ALU(x=dregistero,       y=mux16ob,
+        zx=instruction[11], nx=instruction[10],
+        zy=instruction[9],  ny=instruction[8],
+        f=instruction[7],   no=instruction[6]],
+        out=aluoutput,      out=outM,
+        zr=zr, ng=ng);
+
+    /***********
+    * Jump logic
+    ***********/
+    Not(in=zr, out=notzr);
+    Not(in=ng, out=notng);
+
+    DMux8Way(in=true, sel=instruction[0..2], a=a, b=b, c=c, d=d, e=e, f=f, g=g, h=h);
+
+    // nul 000 | false
+    And(a=a, b=false, out=nul);
+
+    // JGT 001 | zr=0 AND ng=0
+    And(a=notzr, b=notng, out=jgtand);
+    And(a=b, b=jgtand, out=jgt);
+    
+    // JEQ 010 | zr=1
+    And(a=c, b=zr, out=jeq);
+
+    // JGE 011 | zr=1 OR ng=0
+    Or(a=zr, b=notng, out=jgeor);
+    And(a=d, b=jgeor, out=jge);
+    
+    // JLT 100 | ng=1
+    And(a=e, b=ng, out=jlt);
+
+    // JNE 101 | zr=0
+    And(a=f, b=notzr, out=jne);
+
+    // JLE 110 | zr=1 OR ng=1
+    Or(a=zr, b=ng, out=jleor);
+    And(a=g, b=jleor, out=jle);
+
+    // JMP 111 | true
+    And(a=h, b=true, out=jmp);
+
+    Or8Way(in[0]=nul, in[1]=jgt, in[2]=jeq, in[3]=jge,
+           in[4]=jlt, in[5]=jne, in[6]=jle, in[7]=jmp,
+           out=jumpor);
+
+    And(a=instruction[15], b=jumpor, out=jump);
+
+    /***********
+    * writeM
+    ***********/
+    // writeM if C-instruction and M dest code is 1
+    And(a=instruction[15], b=instruction[3], out=writeM);
+
+    /***********
+    * PC
+    ***********/
+    // if jump,  inc=0, load=1, reset=0
+    // if reset, inc=0, load=0, reset=1
+    // else,     inc=1, load=0, reset=0
+    Not(in=reset, out=inc);
+    PC(in[0..14]=aregistero15, load=jump, inc=inc, reset=reset, out[0..14]=pc);
 }
