@@ -51,8 +51,7 @@ CHIP CPU {
     ***********/
     // use instruction as address if instruction starts with 0
     Mux16(a=instruction, b=aluoutput, sel=instruction[15], out=mux16oa);
-    // old: load instruction into A register if dest code is 1XX
-    // if A-instruction, load instruction into A register
+    // if A-instruction, load instruction into A register or dest code is 1XX
     Not(in=instruction[15], out=isa);
     Or(a=isa, b=instruction[5], out=loada);
     
@@ -61,8 +60,9 @@ CHIP CPU {
     /***********
     * D register
     ***********/
-    // load instruction into D register if dest code is X1X
-    DRegister(in=aluoutput, load=instruction[4], out=dregistero);
+    // load instruction into D register if dest code is X1X AND is C-instruction
+    And(a=instruction[15], b=instruction[4], out=dregisterload);
+    DRegister(in=aluoutput, load=dregisterload, out=dregistero);
     
     /***********
     * ALU
