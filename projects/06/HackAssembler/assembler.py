@@ -12,15 +12,16 @@ D=D+A
 @0
 M=D
 (xxx)
+DM=D+A
 """
 
 import re
 
 class Parser:
-    _symbol = r"([a-zA-Z_\.\$:][a-zA-Z0-9_\.\$:]+|[0-9]+)"
-    a_instruction = re.compile(r"^@{0}$".format(_symbol))
-    c_instruction = re.compile(r"^[ADM]=[ADM](\+[ADM])?$")
-    l_instruction = re.compile(r"^\({0}\)$".format(_symbol))
+    sym = r"([a-zA-Z_\.\$:][a-zA-Z0-9_\.\$:]+|[0-9]+)"
+    a_instruction = re.compile(r"^@{0}$".format(sym))
+    c_instruction = re.compile(r"^[ADM]+=[ADM](\+[ADM])?$")
+    l_instruction = re.compile(r"^\({0}\)$".format(sym))
 
     def __init__(self, file):
         self.file = self._preprocess_file(file)
@@ -78,7 +79,7 @@ class Parser:
         (as a string).
         Should be called only if instruction_type is A_INSTRUCTION or L_INSTRUCTION.
         """
-        return re.search(re.compile(self._symbol), self.file[self.index]).group(1)
+        return re.search(re.compile(self.sym), self.file[self.index]).group(1)
 
     @property
     def dest(self):
@@ -86,15 +87,16 @@ class Parser:
         Returns the symbolic dest part of the current C-instruction (8 possibilities).
         Should be called only if instruction_type is C_INSTRUCTION
         """
-        pass
+        return re.search(re.compile(r"^([A?D?M?]{1,3})="), self.file[self.index]).group(1)
 
     @property
     def comp(self):
         """
-        Returns the symbolic comp part o fth ecurrent C-instruction (28 possibilities).
+        Returns the symbolic comp part of the current C-instruction (28 possibilities).
         Should be called only if instruction_type is C_INSTRUCTION
         """
-        pass
+        comp = f"(0|-?1|(-?|!?)[ADM]|[ADM](\+|-)[ADM]|D(&\|)[AM])"
+        return re.search(re.compile(r"^{0}=({1})$".format(self.dest, comp)), self.file[self.index]).group(1)
 
     @property
     def jump(self):
@@ -121,12 +123,14 @@ def tests():
         return len(L1) == len(L2) and sorted(L1) == sorted(L2)
 
     p = Parser(asm)
-    assert check_equal(p.file, ['@2', 'D=A', '@3', 'D=D+A', '@0', 'M=D', '(xxx)'])
+    assert check_equal(p.file, ['@2', 'D=A', '@3', 'D=D+A', '@0', 'M=D', '(xxx)', 'DM=D+A'])
     assert p.instruction_type == 'A_INSTRUCTION'
-    assert p.has_more_lines
     assert p.symbol == '2'
+    assert p.has_more_lines
     p.advance
     assert p.instruction_type == 'C_INSTRUCTION'
+    assert p.dest == "D"
+    assert p.comp == "A"
     assert p.has_more_lines
     p.advance
     assert p.instruction_type == 'A_INSTRUCTION'
@@ -134,6 +138,8 @@ def tests():
     assert p.has_more_lines
     p.advance
     assert p.instruction_type == 'C_INSTRUCTION'
+    assert p.dest == "D"
+    assert p.comp == "D+A"
     assert p.has_more_lines
     p.advance
     assert p.instruction_type == 'A_INSTRUCTION'
@@ -141,9 +147,15 @@ def tests():
     assert p.has_more_lines
     p.advance
     assert p.instruction_type == 'C_INSTRUCTION'
+    assert p.dest == "M"
+    assert p.has_more_lines
     p.advance
     assert p.instruction_type == 'L_INSTRUCTION'
     assert p.symbol == 'xxx'
+    assert p.has_more_lines
+    p.advance
+    assert p.instruction_type == 'C_INSTRUCTION'
+    assert p.dest == "DM"
     assert not p.has_more_lines
     print("Tests pass")
 
