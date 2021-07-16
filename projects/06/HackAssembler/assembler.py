@@ -24,9 +24,17 @@ class Parser:
     c_instruction = re.compile(r"^([ADM]+=[ADM](\+[ADM])?|[D0];J([GL][TE]|EQ|NE|MP]))$")
     l_instruction = re.compile(r"^\({0}\)$".format(sym))
 
-    def __init__(self, file):
-        self.file = self._preprocess_file(file)
+    def __init__(self, filename=None, file=None):
+        if not file:
+            self.file = self._open_file(filename)
+        else:
+            self.file = file
+        self.file = self._preprocess_file(self.file)
         self.index = 0
+
+    def _open_file(self, filename):
+        with open(filename) as f:
+            return ''.join(f.readlines())
 
     def _preprocess_file(self, file):
         file = [ s.strip() for s in file.split("\n") ]
@@ -37,7 +45,7 @@ class Parser:
     @property
     def has_more_lines(self):
         "Are there more lines in the input?"
-        return self.index < len(self.file) - 1
+        return self.index < len(self.file)
 
     @property
     def advance(self):
@@ -70,7 +78,7 @@ class Parser:
         elif l:
             return 'L_INSTRUCTION'
         else:
-            return 'UNKNOWN: %s'.format(line)
+            return 'Unable to process line: {0}'.format(line)
 
     @property
     def symbol(self):
@@ -109,7 +117,11 @@ class Parser:
         Should be called only if instruction_type is C_INSTRUCTION.
         """
         pattern = f"^[0ADM];(JGT|JEQ|JGE|JLT|JNE|JLE|JMP)$"
-        return re.search(re.compile(pattern), self.file[self.index]).group(1)
+        match = re.search(re.compile(pattern), self.file[self.index])
+        if match:
+            return match.group(1)
+        else:
+            return match 
 
 
 class Code:
@@ -176,64 +188,121 @@ class Code:
         }
         return codes[code]
 
+import sys
+import os
+class Assembler():
+
+    def __init__(self, filename=None):
+        if not filename:
+            self.infile = sys.argv[1]
+        else:
+            self.infile = filename
+        self.outfile = os.path.splitext(self.infile)[0] + '.hack'
+        open(self.outfile, 'w')
+
+        self.parser = Parser(filename=self.infile)
+        self.code = Code()
+        self._parse()
+
+    def _parse(self):
+        print(self.parser.file)
+        while True:
+            if not self.parser.has_more_lines:
+                break
+            if self.parser.instruction_type == 'A_INSTRUCTION':
+                self._parse_a_instruction()
+            elif self.parser.instruction_type == 'C_INSTRUCTION':
+                self._parse_c_instruction()
+            elif self.parser.instruction_type == 'L_INSTRUCTION':
+                self._parse_l_instruction()
+            else:
+                Exception(self.parser.instruction_type)
+            self.parser.advance
+
+    def _write_line(self, line):
+        with open(self.outfile, 'a') as f:
+            f.write(line + '\n')
+
+    def _parse_a_instruction(self):
+        line = "{0:b}".format(int(self.parser.symbol)).zfill(16)
+        self._write_line(line)
+
+    def _parse_c_instruction(self):
+        line = '111'
+        line += self.code.comp(self.parser.comp)
+        line += self.code.dest(self.parser.dest)
+        line += self.code.jump(self.parser.jump)
+        self._write_line(line)
+
+    def _parse_l_instruction(self):
+        pass
+
+
 
 def tests():
     
     def check_equal(L1, L2):
         return len(L1) == len(L2) and sorted(L1) == sorted(L2)
 
-    p = Parser(asm)
+    p = Parser(file=asm)
     c = Code()
     assert check_equal(p.file, ['@2', 'D=A', '@3', 'D=D+A', '@0', 'M=D', '(xxx)',
                                 'DM=D+A', 'D;JNE'])
+    assert p.has_more_lines
     assert p.instruction_type == 'A_INSTRUCTION'
     assert p.symbol == '2'
-    assert p.has_more_lines
     p.advance
+    assert p.has_more_lines
     assert p.instruction_type == 'C_INSTRUCTION'
     assert p.dest == "D"
     assert c.dest(p.dest) == '010'
     assert p.comp == "A"
     assert c.comp(p.comp) == '0110000'
-    assert p.has_more_lines
     p.advance
+    assert p.has_more_lines
     assert p.instruction_type == 'A_INSTRUCTION'
     assert p.symbol == '3'
-    assert p.has_more_lines
     p.advance
+    assert p.has_more_lines
     assert p.instruction_type == 'C_INSTRUCTION'
     assert p.dest == "D"
     assert c.dest(p.dest) == '010'
     assert p.comp == "D+A"
     assert c.comp(p.comp) == '0000010'
-    assert p.has_more_lines
     p.advance
+    assert p.has_more_lines
     assert p.instruction_type == 'A_INSTRUCTION'
     assert p.symbol == '0'
-    assert p.has_more_lines
     p.advance
+    assert p.has_more_lines
     assert p.instruction_type == 'C_INSTRUCTION'
     assert p.dest == "M"
     assert c.dest(p.dest) == '001'
     assert p.comp == "D"
     assert c.comp(p.comp) == '0001100'
-    assert p.has_more_lines
     p.advance
+    assert p.has_more_lines
     assert p.instruction_type == 'L_INSTRUCTION'
     assert p.symbol == 'xxx'
-    assert p.has_more_lines
     p.advance
+    assert p.has_more_lines
     assert p.instruction_type == 'C_INSTRUCTION'
     assert p.dest == "DM"
     assert c.dest(p.dest) == '011'
     assert p.comp == "D+A"
     assert c.comp(p.comp) == '0000010'
-    assert p.has_more_lines
     p.advance
+    assert p.has_more_lines
     assert p.instruction_type == 'C_INSTRUCTION'
     assert p.jump == "JNE"
     assert c.jump(p.jump) == '101'
+    p.advance
     assert not p.has_more_lines
+    
+    p = Parser(filename='../add/Add.asm')
+    # a = Assembler(filename='../add/Add.asm')
+    a = Assembler()
+    
     print("Tests pass")
 
 tests()
