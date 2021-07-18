@@ -78,14 +78,18 @@ class Parser:
         If the current instruction is @xxx, returns the symbol or decimal xxx
         (as a string).
         Should be called only if instruction_type is A_INSTRUCTION or L_INSTRUCTION.
-        """
+        """ 
         if self.instruction_type == "A_INSTRUCTION":
-            return self.file[self.index][1:]
+            symbol = self.file[self.index][1:]
         elif self.instruction_type == "L_INSTRUCTION":
-            return self.file[self.index][1:-1]
+            symbol = self.file[self.index][1:-1]
         else:
-            return None
+            raise ValueError("symbol called for invalid instruction")
 
+        if re.compile(r"^(?!\d)[a-zA-Z0-9_\.\$:]+$").match(symbol) or symbol.isnumeric():
+            return symbol
+        else:
+            raise ValueError("improperly formatted symbol: {0}".format(symbol))
     @property
     def dest(self):
         """
