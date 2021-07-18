@@ -125,7 +125,12 @@ class Parser:
         Returns the symbolic comp part of the current C-instruction (28 possibilities).
         Should be called only if instruction_type is C_INSTRUCTION
         """
-        return self.file[self.index].split("=")[1].split(";")[0]
+        comp = self.instruction.split("=")[1].split(";")[0]
+        # print(comp, self.instruction)
+        if re.compile(r"^(0|1|-1|[!-]?[DAM]|[DAM][\+-]1|D[\+-][AM]|[AM]-D|D[&\|][AM])$").match(comp):
+            return comp
+        else:
+            raise ValueError("invalid comp code: {0}".format(comp))
 
     @property
     def jump(self):

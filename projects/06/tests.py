@@ -70,6 +70,7 @@ class ParserTestCase(unittest.TestCase):
         self.assertListEqual(dests, pdests)
 
     def test_comp(self):
+        "error happening here"
         compare = ['A', 'D+A', 'D', 'D+A', 'D', 'M', 'D-M', 'D', 'M+1']
         results = []
         while self.p.has_more_lines:
@@ -102,6 +103,13 @@ class ParserTestCase(unittest.TestCase):
             p.dest
 
         self.assertEqual("invalid dest code: am", context.exception.args[0])
+
+    def test_invalid_comp(self):
+        p = assembler.Parser(file="am=d+1")
+        with self.assertRaises(ValueError) as context:
+            p.comp
+
+        self.assertEqual("invalid comp code: d+1", context.exception.args[0])
 
     def test_improperly_formatted_symbol(self):
         p = assembler.Parser(file="@2ABC")
