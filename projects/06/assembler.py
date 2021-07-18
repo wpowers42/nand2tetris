@@ -5,6 +5,7 @@ import os
 class Parser:    
 
     def __init__(self, filename=None, file=None):
+        # use file if provided, otherwise load file from disk
         if not file:
             self.file = self._open_file(filename)
         else:
@@ -17,6 +18,7 @@ class Parser:
             return ''.join(f.readlines())
 
     def _preprocess_file(self, file):
+        "removes any non-instructions from file"
         file = file.split("\n")
         file = [ s.split("//")[0] for s in file]
         file = [ s.strip() for s in file ]
@@ -26,8 +28,7 @@ class Parser:
         return list(file)
 
     def _normalize(self, line):
-        # normalizes c-instructions by adding null dest & jump fields
-        # if they're unspecified
+        "normalizes c-instructions by adding null dest & jump fields if unspecified"
         # credit: https://github.com/rose/nand2tetris/blob/master/assembler.py
 
         if line[0] == "@" or line[0] == "(":
@@ -208,15 +209,21 @@ class Symbol():
         self.next_address = 16
 
     def add_entry(self, entry, address=None):
+        """
+        Adds a new entry to the symbol table. If the address is not specified,
+        use the next available address. Addresses start at 16.
+        """
         if address is None:
             address = self.next_address
             self.next_address += 1
         self.table[entry] = address
 
     def contains(self, symbol):
+        "Is the symbol already in the symbol table?"
         return symbol in self.table
 
     def get_address(self, symbol):
+        "Returns the address of a symbol."
         return self.table[symbol]
 
 class Assembler():
@@ -232,6 +239,11 @@ class Assembler():
         self._second_pass()
 
     def _first_pass(self):
+        """
+        During the first pass, look for any labels and add them to the symbol
+        table with the address of the current line. We use the current line
+        because the labels are not included in the final output.
+        """
         self.parser = Parser(filename=self.infile)
         index = 0
         while True:
@@ -244,6 +256,10 @@ class Assembler():
             self.parser.advance
 
     def _second_pass(self):
+        """
+        During the second pass, parse the A and C instructions into binary and
+        add them to the outfile.
+        """
         self.parser = Parser(filename=self.infile)
         while True:
             if not self.parser.has_more_lines:
@@ -259,14 +275,22 @@ class Assembler():
             self.parser.advance
 
     def _create_outfile(self):
+        "Creates and overwrites a new outfile."
         self.outfile = os.path.splitext(self.infile)[0] + '.hack'
         open(self.outfile, 'w')
 
     def _write_line(self, line):
+        "Appends a single line to the outfile."
         with open(self.outfile, 'a') as f:
             f.write(line + '\n')
 
     def _parse_a_instruction(self):
+        """
+        If the symbol is already numberic, leave it as is. If the symbol is either
+        a label or variable, look up the symbol's address in the symbol table.
+        If it doesn't exist, add it. Convert the numeric symbol or symbol address
+        to binary and append to the outfile.
+        """
         symbol = self.parser.symbol
         if not symbol.isnumeric():
             if not self.symbol.contains(symbol):
@@ -280,6 +304,11 @@ class Assembler():
         self._write_line(line)
 
     def _parse_c_instruction(self):
+        """
+        By rule and convention, C instructions start '111'. Look up the comp,
+        dest, and jump components in the Code module and append in order. Write
+        the line to the outfile.
+        """
         line = '111'
         line += self.code.comp(self.parser.comp)
         line += self.code.dest(self.parser.dest)
