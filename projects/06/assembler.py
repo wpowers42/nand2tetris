@@ -1,7 +1,6 @@
 import re
 import sys
 import os
-import tests
 
 class Parser:    
 
@@ -283,5 +282,4 @@ class Assembler():
         self._write_line(line)
 
 if __name__ == "__main__":
-    tests.run_tests()
     Assembler()

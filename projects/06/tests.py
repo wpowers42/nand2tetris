@@ -1,4 +1,5 @@
 import assembler
+import unittest
 
 def parser_tests():
 
@@ -23,6 +24,7 @@ def parser_tests():
         D;JGT
         @256
         MD=M+1
+        @2ABC
         """
     
     def check_equal(L1, L2):
@@ -31,7 +33,7 @@ def parser_tests():
     p = assembler.Parser(file=asm)
     assert check_equal(p.file, ['@2', 'D=A;null', '@3', 'D=D+A;null', '@0', 'M=D;null', '(xxx)',
                                 'DM=D+A;null', 'null=D;JNE', 'D=M;null', 'D=D-M;null', 'null=D;JGT',
-                                '@256', 'MD=M+1;null'])
+                                '@256', 'MD=M+1;null', "@2ABC"])
     assert p.has_more_lines
     assert p.instruction_type == 'A_INSTRUCTION'
     assert p.symbol == '2'
@@ -81,9 +83,26 @@ def parser_tests():
     p.advance
     assert p.dest == "DM"
     p.advance
+
+    
+    p.advance
     assert not p.has_more_lines
     
     print("parser tests pass")
+
+class ParserTestCase(unittest.TestCase):
+    infile = """
+        @2ABC
+        """
+    p = assembler.Parser(file=infile)
+
+    def test_improperly_formatted_symbol(self):
+        with self.assertRaises(ValueError) as context:
+            self.p.symbol
+
+        self.assertEqual("improperly formatted symbol: 2ABC", context.exception.args[0])
+
+
 
 def code_tests():
 
@@ -122,3 +141,7 @@ def run_tests():
     code_tests()
     parser_tests()
     symbol_tests()
+
+if __name__ == "__main__":
+    run_tests()
+    unittest.main(exit=False)
