@@ -96,6 +96,19 @@ class ParserTestCase(unittest.TestCase):
 
         self.assertEqual("improperly formatted symbol: 2ABC", context.exception.args[0])
 
+    def test_improperly_formatted_constant(self):
+        p = assembler.Parser(file="@32768")
+        with self.assertRaises(ValueError) as context:
+            p.symbol
+
+        self.assertEqual("constant larger than max allowed (32767): 32768", context.exception.args[0])
+
+        p = assembler.Parser(file="@-1")
+        with self.assertRaises(ValueError) as context:
+            p.symbol
+
+        self.assertEqual("negative constants not allowed: -1", context.exception.args[0])
+
 
 class CodeTestCase(unittest.TestCase):
 

@@ -2,7 +2,8 @@ import re
 import sys
 import os
 
-class Parser:    
+
+class Parser:
 
     def __init__(self, filename=None, file=None):
         # use file if provided, otherwise load file from disk
@@ -20,11 +21,11 @@ class Parser:
     def _preprocess_file(self, file):
         "removes any non-instructions from file"
         file = file.split("\n")
-        file = [ s.split("//")[0] for s in file]
-        file = [ s.strip() for s in file ]
+        file = [s.split("//")[0] for s in file]
+        file = [s.strip() for s in file]
         file = filter(lambda l: len(l) > 0, file)
         file = filter(lambda l: l[:2] != '//', file)
-        file = [ self._normalize(l) for l in file ]
+        file = [self._normalize(l) for l in file]
         return list(file)
 
     def _normalize(self, line):
@@ -83,7 +84,7 @@ class Parser:
         If the current instruction is @xxx, returns the symbol or decimal xxx
         (as a string).
         Should be called only if instruction_type is A_INSTRUCTION or L_INSTRUCTION.
-        """ 
+        """
         if self.instruction_type == "A_INSTRUCTION":
             symbol = self.file[self.index][1:]
         elif self.instruction_type == "L_INSTRUCTION":
@@ -91,10 +92,18 @@ class Parser:
         else:
             raise ValueError("symbol called for invalid instruction")
 
-        if re.compile(r"^(?!\d)[a-zA-Z0-9_\.\$:]+$").match(symbol) or symbol.isnumeric():
+        if re.compile(r"^(?!\d)[a-zA-Z0-9_\.\$:]+$").match(symbol):
             return symbol
+        elif re.compile(r"^-\d+$").match(symbol):
+            raise ValueError("negative constants not allowed: {0}".format(symbol))
+        elif symbol.isnumeric():
+            if int(symbol) > 32767:
+                raise ValueError("constant larger than max allowed (32767): {0}".format(symbol))
+            else:
+                return symbol
         else:
             raise ValueError("improperly formatted symbol: {0}".format(symbol))
+
     @property
     def dest(self):
         """
@@ -122,6 +131,7 @@ class Parser:
         """
         return self.file[self.index].split("=")[1].split(";")[1]
 
+
 class Code:
 
     def dest(self, code):
@@ -130,76 +140,78 @@ class Code:
             return '000'
 
         codes = {
-            'null' : '000',
-            'M'    : '001',
-            'D'    : '010',
-            'DM'   : '011',
-            'A'    : '100',
-            'AM'   : '101',
-            'AD'   : '110',
-            'ADM'  : '111'
+            'null': '000',
+            'M': '001',
+            'D': '010',
+            'DM': '011',
+            'A': '100',
+            'AM': '101',
+            'AD': '110',
+            'ADM': '111'
         }
         return codes[code]
 
     def comp(self, code):
         "Returns the binary code of the comp mnemonic."
         codes = {
-            '0'   : '0101010',
-            '1'   : '0111111',
-            '-1'  : '0111010',
-            'D'   : '0001100',
-            'A'   : '0110000',
-            'M'   : '1110000',
-            '!D'  : '0001101',
-            '!A'  : '0110001',
-            '!M'  : '1110001',
-            '-D'  : '0001111',
-            '-A'  : '0110011',
-            '-M'  : '1110011',
-            'D+1' : '0011111',
-            'A+1' : '0110111',
-            'M+1' : '1110111',
-            'D-1' : '0001110',
-            'A-1' : '0110010',
-            'M-1' : '1110010',
-            'D+A' : '0000010',
-            'D+M' : '1000010',
-            'D-A' : '0010011',
-            'D-M' : '1010011',
-            'A-D' : '0000111',
-            'M-D' : '1000111',
-            'D&A' : '0000000',
-            'D&M' : '1000000',
-            'D|A' : '0010101',
-            'D|M' : '1010101'
+            '0': '0101010',
+            '1': '0111111',
+            '-1': '0111010',
+            'D': '0001100',
+            'A': '0110000',
+            'M': '1110000',
+            '!D': '0001101',
+            '!A': '0110001',
+            '!M': '1110001',
+            '-D': '0001111',
+            '-A': '0110011',
+            '-M': '1110011',
+            'D+1': '0011111',
+            'A+1': '0110111',
+            'M+1': '1110111',
+            'D-1': '0001110',
+            'A-1': '0110010',
+            'M-1': '1110010',
+            'D+A': '0000010',
+            'D+M': '1000010',
+            'D-A': '0010011',
+            'D-M': '1010011',
+            'A-D': '0000111',
+            'M-D': '1000111',
+            'D&A': '0000000',
+            'D&M': '1000000',
+            'D|A': '0010101',
+            'D|M': '1010101'
         }
 
         return codes[code]
 
     def jump(self, code):
         "Returns the binary code of the jump mnemonic."
-        if not code: return '000'
+        if not code:
+            return '000'
         codes = {
             'null': '000',
-            'JGT' : '001',
-            'JEQ' : '010',
-            'JGE' : '011',
-            'JLT' : '100',
-            'JNE' : '101',
-            'JLE' : '110',
-            'JMP' : '111'
+            'JGT': '001',
+            'JEQ': '010',
+            'JGE': '011',
+            'JLT': '100',
+            'JNE': '101',
+            'JLE': '110',
+            'JMP': '111'
         }
         return codes[code]
+
 
 class Symbol():
 
     def __init__(self):
-        self.table = { }
+        self.table = {}
 
         for i in range(16):
             self.add_entry(f'R{i}', i)
 
-        self.add_entry('SP' , 0)
+        self.add_entry('SP', 0)
         self.add_entry('LCL', 1)
         self.add_entry('ARG', 2)
         self.add_entry('THIS', 3)
@@ -226,12 +238,13 @@ class Symbol():
         "Returns the address of a symbol."
         return self.table[symbol]
 
+
 class Assembler():
 
     def __init__(self, filename=None):
         self.infile = filename if filename else sys.argv[1]
         self._create_outfile()
-        
+
         self.code = Code()
         self.symbol = Symbol()
 
@@ -314,6 +327,7 @@ class Assembler():
         line += self.code.dest(self.parser.dest)
         line += self.code.jump(self.parser.jump)
         self._write_line(line)
+
 
 if __name__ == "__main__":
     Assembler()
