@@ -1,9 +1,9 @@
 import assembler
 import unittest
 
-def parser_tests():
+class ParserTestCase(unittest.TestCase):
 
-    asm = """// This file is part of www.nand2tetris.org
+    file = """// This file is part of www.nand2tetris.org
         // and the book "The Elements of Computing Systems"
         // by Nisan and Schocken, MIT Press.
         // File name: projects/06/add/Add.asm
@@ -24,81 +24,75 @@ def parser_tests():
         D;JGT
         @256
         MD=M+1
-        @2ABC
         """
+
+    def setUp(self):
+        self.p = assembler.Parser(file=self.file)
+
+    def test_processed_file(self):
+        self.assertListEqual( self.p.file, ['@2', 'D=A;null', '@3', 'D=D+A;null',
+            '@0','M=D;null', '(xxx)', 'DM=D+A;null', 'null=D;JNE', 'D=M;null',
+            'D=D-M;null', 'null=D;JGT', '@256', 'MD=M+1;null'])
+
+    def test_advance(self):
+        for _ in range(len(self.p.file)): self.p.advance
+        self.assertFalse(self.p.has_more_lines)
+
+    def test_instruction_type(self):
+        instructions = ['A_INSTRUCTION', 'C_INSTRUCTION', 'A_INSTRUCTION', 'C_INSTRUCTION',
+            'A_INSTRUCTION', 'C_INSTRUCTION', 'L_INSTRUCTION', 'C_INSTRUCTION', 'C_INSTRUCTION',
+            'C_INSTRUCTION', 'C_INSTRUCTION', 'C_INSTRUCTION', 'A_INSTRUCTION', 'C_INSTRUCTION']
+        pinstructions = []
+        while self.p.has_more_lines:
+            pinstructions.append(self.p.instruction_type)
+            self.p.advance
+
+        self.assertListEqual(pinstructions, instructions)
     
-    def check_equal(L1, L2):
-        return len(L1) == len(L2) and sorted(L1) == sorted(L2)
+    def test_symbol(self):
+        symbols = ['2', '3', '0', 'xxx', '256']
+        psymbols = []
+        while self.p.has_more_lines:
+            if self.p.instruction_type != "C_INSTRUCTION":
+                psymbols.append(self.p.symbol)
+            self.p.advance
 
-    p = assembler.Parser(file=asm)
-    assert check_equal(p.file, ['@2', 'D=A;null', '@3', 'D=D+A;null', '@0', 'M=D;null', '(xxx)',
-                                'DM=D+A;null', 'null=D;JNE', 'D=M;null', 'D=D-M;null', 'null=D;JGT',
-                                '@256', 'MD=M+1;null', "@2ABC"])
-    assert p.has_more_lines
-    assert p.instruction_type == 'A_INSTRUCTION'
-    assert p.symbol == '2'
-    p.advance
-    assert p.has_more_lines
-    assert p.instruction_type == 'C_INSTRUCTION'
-    assert p.dest == "D"
-    assert p.comp == "A"
-    p.advance
-    assert p.has_more_lines
-    assert p.instruction_type == 'A_INSTRUCTION'
-    assert p.symbol == '3'
-    p.advance
-    assert p.has_more_lines
-    assert p.instruction_type == 'C_INSTRUCTION'
-    assert p.dest == "D"
-    assert p.comp == "D+A"
-    p.advance
-    assert p.has_more_lines
-    assert p.instruction_type == 'A_INSTRUCTION'
-    assert p.symbol == '0'
-    p.advance
-    assert p.has_more_lines
-    assert p.instruction_type == 'C_INSTRUCTION'
-    assert p.dest == "M"
-    assert p.comp == "D"
-    p.advance
-    assert p.has_more_lines
-    assert p.instruction_type == 'L_INSTRUCTION'
-    assert p.symbol == 'xxx'
-    p.advance
-    assert p.has_more_lines
-    assert p.instruction_type == 'C_INSTRUCTION'
-    assert p.dest == "DM"
-    assert p.comp == "D+A"
-    p.advance
-    assert p.has_more_lines
-    assert p.instruction_type == 'C_INSTRUCTION'
-    assert p.jump == "JNE"
-    p.advance
-    p.advance
-    p.advance
-    assert p.instruction_type == 'C_INSTRUCTION'
-    assert p.jump == "JGT"
-    p.advance
-    assert p.symbol == "256"
-    p.advance
-    assert p.dest == "DM"
-    p.advance
+        self.assertListEqual(symbols, psymbols)
 
+    def test_dest(self):
+        dests = ['D', 'D', 'M', 'DM', 'null', 'D', 'D', 'null', 'DM']
+        pdests = []
+        while self.p.has_more_lines:
+            if self.p.instruction_type == "C_INSTRUCTION":
+                pdests.append(self.p.dest)
+            self.p.advance
+
+        self.assertListEqual(dests, pdests)
+
+    def test_comp(self):
+        compare = ['A', 'D+A', 'D', 'D+A', 'D', 'M', 'D-M', 'D', 'M+1']
+        results = []
+        while self.p.has_more_lines:
+            if self.p.instruction_type == "C_INSTRUCTION":
+                results.append(self.p.comp)
+            self.p.advance
+
+        self.assertListEqual(results, compare)
+
+    def test_jump(self):
+        compare = ['null', 'null', 'null', 'null', 'JNE', 'null', 'null', 'JGT', 'null']
+        results = []
+        while self.p.has_more_lines:
+            if self.p.instruction_type == "C_INSTRUCTION":
+                results.append(self.p.jump)
+            self.p.advance
+
+        self.assertListEqual(results, compare)
     
-    p.advance
-    assert not p.has_more_lines
-    
-    print("parser tests pass")
-
-class ParserTestCase(unittest.TestCase):
-    infile = """
-        @2ABC
-        """
-    p = assembler.Parser(file=infile)
-
     def test_improperly_formatted_symbol(self):
+        p = assembler.Parser(file="@2ABC")
         with self.assertRaises(ValueError) as context:
-            self.p.symbol
+            p.symbol
 
         self.assertEqual("improperly formatted symbol: 2ABC", context.exception.args[0])
 

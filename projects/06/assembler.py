@@ -44,6 +44,11 @@ class Parser:
         return self.index < len(self.file)
 
     @property
+    def instruction(self):
+        "What is the current instruction"
+        return self.file[self.index]
+
+    @property
     def advance(self):
         """
         Skips over white space and comments, if necessary.
