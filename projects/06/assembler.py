@@ -129,7 +129,11 @@ class Parser:
         Returns the symbolic jump part of the current C-instruction (8 possibilities).
         Should be called only if instruction_type is C_INSTRUCTION.
         """
-        return self.file[self.index].split("=")[1].split(";")[1]
+        jump = self.file[self.index].split("=")[1].split(";")[1]
+        if re.compile(r"^(null|JGT|JEQ|JGE|JLT|JNE|JLE|JMP)$").match(jump):
+            return jump
+        else:
+            raise ValueError("invalid jump code: {0}".format(jump))
 
 
 class Code:
