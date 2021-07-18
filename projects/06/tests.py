@@ -97,45 +97,47 @@ class ParserTestCase(unittest.TestCase):
         self.assertEqual("improperly formatted symbol: 2ABC", context.exception.args[0])
 
 
+class CodeTestCase(unittest.TestCase):
 
-def code_tests():
+    def setUp(self):
+        self.code = assembler.Code()
 
-    c = assembler.Code()
-    
-    assert c.dest('D') == '010'
-    assert c.comp('A') == '0110000'
-    assert c.dest('D') == '010'
-    assert c.comp('D+A') == '0000010'
-    assert c.dest('M') == '001'
-    assert c.comp('D') == '0001100'
-    assert c.dest('DM') == '011'
-    assert c.comp('D+A') == '0000010'
-    assert c.jump('JNE') == '101'
-    assert c.dest('null') == '000'
-    
-    print("code tests pass")
+    def test_dest(self):
+        self.assertEqual(self.code.dest('D'), '010')
+        self.assertEqual(self.code.dest('M'), '001')
+        self.assertEqual(self.code.dest('DM'), '011')
+        self.assertEqual(self.code.dest('null'), '000')
+
+    def test_comp(self):
+        self.assertEqual(self.code.comp('A'), '0110000')
+        self.assertEqual(self.code.comp('D+A'), '0000010')
+        self.assertEqual(self.code.comp('D'), '0001100')
+
+    def test_jump(self):
+        self.assertEqual(self.code.jump('JNE'), '101')
 
 
-def symbol_tests():
-    s = assembler.Symbol()
-    assert s.contains('SCREEN')
-    assert s.get_address('KBD') == 24576
-    s.add_entry('ENTRY', 56)
-    assert s.contains('ENTRY')
-    assert s.get_address('ENTRY') == 56
-    s.add_entry('LOOP')
-    assert s.contains('LOOP')
-    assert s.get_address('LOOP') == 16
-    assert s.get_address('R0') == 0
-    assert s.get_address('SP') == 0
+class SymbolTestCase(unittest.TestCase):
+    def setUp(self):
+        self.symbol = assembler.Symbol()
 
-    print('symbol tests pass')
+    def test_contains(self):
+        self.assertTrue(self.symbol.contains('R3'))
+        self.assertTrue(self.symbol.contains('SCREEN'))
+        self.assertTrue(self.symbol.contains('KBD'))
 
-def run_tests():
-    code_tests()
-    parser_tests()
-    symbol_tests()
+    def test_get_address(self):
+        self.assertEqual(self.symbol.get_address('KBD'), 24576)
+        self.assertEqual(self.symbol.get_address('R0'), 0)
+        self.assertEqual(self.symbol.get_address('SP'), 0)
+
+    def test_add_entry(self):
+        self.symbol.add_entry('ENTRY', 56)
+        self.assertTrue(self.symbol.contains('ENTRY'))
+        self.assertEqual(self.symbol.get_address('ENTRY'), 56)
+        self.symbol.add_entry('LOOP')
+        self.assertTrue(self.symbol.contains('LOOP'))
+        self.assertEqual(self.symbol.get_address('LOOP'), 16)
 
 if __name__ == "__main__":
-    run_tests()
     unittest.main(exit=False)
