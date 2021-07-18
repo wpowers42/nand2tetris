@@ -96,6 +96,13 @@ class ParserTestCase(unittest.TestCase):
 
         self.assertEqual("invalid jump code: jeq", context.exception.args[0])
 
+    def test_invalid_dest(self):
+        p = assembler.Parser(file="am=d")
+        with self.assertRaises(ValueError) as context:
+            p.dest
+
+        self.assertEqual("invalid dest code: am", context.exception.args[0])
+
     def test_improperly_formatted_symbol(self):
         p = assembler.Parser(file="@2ABC")
         with self.assertRaises(ValueError) as context:

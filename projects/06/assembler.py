@@ -113,7 +113,11 @@ class Parser:
         dest = self.file[self.index].split("=")[0]
         if dest != "null":
             dest = "".join(sorted(dest))
-        return dest
+        
+        if re.compile(r"^(null|M|D|DM|A|AM|AD|ADM)$").match(dest):
+            return dest
+        else:
+            raise ValueError("invalid dest code: {0}".format(dest))
 
     @property
     def comp(self):
